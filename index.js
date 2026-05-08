@@ -165,34 +165,25 @@ async function searchDropbox(address, month, day) {
 // ─── GET DROPBOX SHARE LINK ─────────────────────────────────────────────────
 async function getDropboxLink(path) {
   const token = await getDropboxToken();
-async function getDropboxLink(path) {
-  const token = await getDropboxToken();
   if (!token) return null;
+
   try {
     const res = await axios.post(
       "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings",
-      { path, settings: { requested_visibility: { ".tag": "public" } } },
-      { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      { path, settings: { requested_visibility: "public" } },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      }
     );
-    return res.data.url.replace("?dl=0", "?raw=1");
+    return res.data.url.replace("?dl=0", "?dl=1");
   } catch (err) {
     if (err.response?.data?.error?.[".tag"] === "shared_link_already_exists") {
       const existing = err.response.data.error.shared_link_already_exists?.metadata?.url;
-      if (existing) return existing.replace("?dl=0", "?raw=1");
-      // Try listing existing links
-      try {
-        const list = await axios.post(
-          "https://api.dropboxapi.com/2/sharing/list_shared_links",
-          { path, direct_only: true },
-          { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
-        );
-        const link = list.data.links?.[0]?.url;
-        if (link) return link.replace("?dl=0", "?raw=1");
-      } catch (e) {
-        console.error("List links error:", e.message);
-      }
+      if (existing) return existing.replace("?dl=0", "?dl=1");
     }
-    console.error("Dropbox link error:", err.response?.data || err.message);
     return null;
   }
 }
@@ -315,3 +306,4 @@ app.listen(PORT, async () => {
   // Pre-warm the Dropbox token on startup
   await getDropboxToken();
 });
+
